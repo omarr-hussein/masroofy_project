@@ -1,8 +1,13 @@
+import decimal
+from lib2to3.fixes.fix_input import context
+
+from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.utils import timezone
 from datetime import date
 from decimal import Decimal
 from .models import Cycle, Transaction
+from django.template import loader
 
 def calculate_days_left(cycle):
     """Calculates days remaining in the active budget cycle."""
@@ -10,6 +15,32 @@ def calculate_days_left(cycle):
     if today > cycle.end_date:
         return 0
     return (cycle.end_date - today).days
+
+def calculateTodayBudget(request):
+    cycle = Cycle.objects.last()
+    today = date.today()
+
+    if today < cycle.start_date:
+        todaysLimit = Decimal('0.00')
+    elif today > cycle.end_date:
+        todaysLimit = cycle.current_balance
+    else:
+        totalDays = (cycle.end_date - cycle.start_date).days +1
+        dayLimit = cycle.total_amount / Decimal(totalDays)
+
+        pastDays = (today - cycle.start_date).days
+        expectedToSpent = pastDays * Decimal(dayLimit)
+        actualSpent = cycle.total_amount - cycle.current_balance
+        savedMoney = expectedToSpent - actualSpent
+        todaysLimit = dayLimit + savedMoney
+
+    context =\
+        {
+            'todaysBudget' : todaysLimit,
+            'cycle' : cycle,
+        }
+    template =  loader.get_template('todaysBudget.html')
+    return HttpResponse(template.render(context, request))
 
 def create_cycle(request):
     """
