@@ -40,7 +40,8 @@ def calculateTodayBudget(request):
         message = ''
         if average < 20:
             message = 'Take care! You spent ' + str(round(100 -average, 1)) + '% of Total money'
-
+        elif average ==0:
+            message = 'Budget Exhausted!'
         if (todaysLimit < 0):
             todaysLimit = (cycle.current_balance / ((cycle.end_date - today).days +1))
 
@@ -51,6 +52,22 @@ def calculateTodayBudget(request):
             'message' : message,
         }
     template =  loader.get_template('todaysBudget.html')
+    return HttpResponse(template.render(context, request))
+
+def transactionsHistory(request):
+    transactions = []
+    message = ''
+    if Transaction.objects.count() != 0:
+        transactions = Transaction.objects.all()
+    else:
+        message = 'No transactions found!'
+
+    context = {
+        'transactions' : transactions,
+        'message' : message,
+    }
+
+    template = loader.get_template('transactions.html')
     return HttpResponse(template.render(context, request))
 
 def create_cycle(request):

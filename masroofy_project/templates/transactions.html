@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Transactions</title>
+</head>
+<body>
+    <h1>Transactions History </h1>
+    <p> {{ message }}</p>
+    {% for x in transactions %}
+        <li>Transaction no. {{ x.id }}</li>
+        <p>Date : {{ x.date }}</p>
+        <p>Category : {{ x.category }}</p>
+        <p>Amount : {{ x.amount }}</p>
+        <hr>
+    {% endfor %}
+</body>
+</html>
