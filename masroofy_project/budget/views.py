@@ -1,6 +1,8 @@
 import decimal
+from itertools import cycle
 from lib2to3.fixes.fix_input import context
 
+from django.core.mail import message
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.utils import timezone
@@ -34,10 +36,19 @@ def calculateTodayBudget(request):
         savedMoney = expectedToSpent - actualSpent
         todaysLimit = dayLimit + savedMoney
 
+        average = Decimal(cycle.current_balance) / cycle.total_amount * 100
+        message = ''
+        if average < 20:
+            message = 'Take care! You spent ' + str(round(100 -average, 1)) + '% of Total money'
+
+        if (todaysLimit < 0):
+            todaysLimit = (cycle.current_balance / ((cycle.end_date - today).days +1))
+
     context =\
         {
-            'todaysBudget' : todaysLimit,
+            'todaysBudget' : round(todaysLimit,2),
             'cycle' : cycle,
+            'message' : message,
         }
     template =  loader.get_template('todaysBudget.html')
     return HttpResponse(template.render(context, request))
