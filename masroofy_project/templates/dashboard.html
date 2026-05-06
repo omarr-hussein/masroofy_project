@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Masroofy Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 2rem;
+            color: #1f2937;
+        }
+        .card {
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1rem;
+            max-width: 700px;
+        }
+        .value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin: 0.25rem 0;
+        }
+        .muted {
+            color: #6b7280;
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            max-width: 1000px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Masroofy Dashboard</h1>
+
+    {% if active_cycle %}
+        <div class="layout">
+            <section class="card">
+                <h2>Safe Daily Limit</h2>
+                <p class="value">{{ safe_daily_limit }}</p>
+                <p class="muted">Remaining budget: {{ remaining_budget }}</p>
+                <p class="muted">Remaining days: {{ remaining_days }}</p>
+                <p class="muted">Cycle: {{ active_cycle.start_date }} to {{ active_cycle.end_date }}</p>
+            </section>
+
+            <section class="card">
+                <h2>Spending Insights</h2>
+                {% if category_data %}
+                    <canvas id="spendingChart" width="300" height="300"></canvas>
+                {% else %}
+                    <p>No data available. Log an expense to see your insights.</p>
+                {% endif %}
+            </section>
+        </div>
+
+        {% if category_data %}
+            {{ category_data|json_script:"category-data" }}
+            <script>
+                const categoryData = JSON.parse(document.getElementById("category-data").textContent);
+                const labels = categoryData.map(item => `${item.category} (${item.percentage}%)`);
+                const values = categoryData.map(item => item.total);
+
+                new Chart(document.getElementById("spendingChart"), {
+                    type: "pie",
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"],
+                        }]
+                    },
+                    options: {
+                        plugins: {
+                            legend: {
+                                position: "bottom",
+                            }
+                        }
+                    }
+                });
+            </script>
+        {% endif %}
+    {% else %}
+        <section class="card">
+            <h2>No Active Budget Cycle</h2>
+            <p>Create a cycle first to see your safe daily limit and spending insights.</p>
+        </section>
+    {% endif %}
+</body>
+</html>

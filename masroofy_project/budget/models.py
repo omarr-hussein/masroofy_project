@@ -1,33 +1,43 @@
 from django.db import models
 from django.utils import timezone
 
-class Cycle(models.Model):
-    """
-    Represents a budget cycle in the Masroofy application.
-    
-    This model acts as the core entity tracking the overall budget allowance, 
-    the timeframe (start and end dates), and the current remaining balance 
-    for the student.
-    """
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+class BudgetCycle(models.Model):
+    """Stores the user's budgeting cycle and initial allowance."""
+
+    total_allowance = models.DecimalField(max_digits=10, decimal_places=2)
     start_date = models.DateField()
     end_date = models.DateField()
-    current_balance = models.DecimalField(max_digits=10, decimal_places=2)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["-start_date", "-id"]
 
     def __str__(self):
-        """Returns a string representation of the Cycle."""
-        return f"Budget Cycle: {self.start_date} to {self.end_date}"
+        return f"Budget cycle {self.start_date} to {self.end_date}"
 
 
-class Transaction(models.Model):
-    """
-    Represents a single financial transaction (expense) within a budget cycle.
-    """
-    cycle = models.ForeignKey(Cycle, on_delete=models.CASCADE, related_name='transactions')
+class Expense(models.Model):
+    """Represents a logged expense inside a budget cycle."""
+
+    class Category(models.TextChoices):
+        FOOD = "Food", "Food"
+        TRANSPORT = "Transport", "Transport"
+        UTILITIES = "Utilities", "Utilities"
+        ENTERTAINMENT = "Entertainment", "Entertainment"
+        OTHER = "Other", "Other"
+
+    budget_cycle = models.ForeignKey(
+        BudgetCycle,
+        on_delete=models.CASCADE,
+        related_name="expenses",
+    )
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    category = models.CharField(max_length=100)
-    date = models.DateField(default=timezone.now)
+    category = models.CharField(max_length=20, choices=Category.choices)
+    timestamp = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-timestamp", "-id"]
 
     def __str__(self):
-        """Returns a string representation of the Transaction."""
-        return f"{self.category} Expense: {self.amount} EGP"
+        return f"{self.category}: {self.amount}"

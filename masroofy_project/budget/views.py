@@ -1,64 +1,83 @@
-import decimal
-from itertools import cycle
-from lib2to3.fixes.fix_input import context
-
-from django.core.mail import message
-from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.utils import timezone
-from datetime import date
 from decimal import Decimal
-from .models import Cycle, Transaction
-from django.template import loader
+from django.db.models import Sum
+from .models import BudgetCycle, Expense
 
-def calculate_days_left(cycle):
-    """Calculates days remaining in the active budget cycle."""
-    today = date.today()
-    if today > cycle.end_date:
-        return 0
-    return (cycle.end_date - today).days
 
-def calculateTodayBudget(request):
-    cycle = Cycle.objects.last()
-    today = date.today()
+def dashboard_view(request):
+    """
+    User Story #3 + #4 dashboard:
+    - Dynamic safe daily limit calculation
+    - Visual spending insights by category
+    """
+    active_cycle = (
+        BudgetCycle.objects.filter(is_active=True).order_by("-start_date", "-id").first()
+    )
 
-    if today < cycle.start_date:
-        todaysLimit = Decimal('0.00')
-    elif today > cycle.end_date:
-        todaysLimit = cycle.current_balance
+    context = {
+        "active_cycle": active_cycle,
+        "remaining_budget": Decimal("0.00"),
+        "remaining_days": 0,
+        "safe_daily_limit": Decimal("0.00"),
+        "category_data": [],
+        "total_spent": Decimal("0.00"),
+    }
+
+    if not active_cycle:
+        return render(request, "dashboard.html", context)
+
+    today = timezone.localdate()
+
+    # Remaining days are inclusive; when today is end date, it must be 1.
+    if today > active_cycle.end_date:
+        remaining_days = 0
+    elif today < active_cycle.start_date:
+        remaining_days = (active_cycle.end_date - active_cycle.start_date).days + 1
     else:
-        totalDays = (cycle.end_date - cycle.start_date).days +1
-        dayLimit = cycle.total_amount / Decimal(totalDays)
+        remaining_days = (active_cycle.end_date - today).days + 1
 
-        pastDays = (today - cycle.start_date).days
-        expectedToSpent = pastDays * Decimal(dayLimit)
-        actualSpent = cycle.total_amount - cycle.current_balance
-        savedMoney = expectedToSpent - actualSpent
-        todaysLimit = dayLimit + savedMoney
+    cycle_expenses = Expense.objects.filter(budget_cycle=active_cycle)
+    total_spent = cycle_expenses.aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+    remaining_budget = active_cycle.total_allowance - total_spent
 
-        average = Decimal(cycle.current_balance) / cycle.total_amount * 100
-        message = ''
-        if average < 20:
-            message = 'Take care! You spent ' + str(round(100 -average, 1)) + '% of Total money'
-        elif average ==0:
-            message = 'Budget Exhausted!'
-        if (todaysLimit < 0):
-            todaysLimit = (cycle.current_balance / ((cycle.end_date - today).days +1))
+    if remaining_days > 0:
+        safe_daily_limit = remaining_budget / Decimal(remaining_days)
+    else:
+        safe_daily_limit = Decimal("0.00")
 
-    context =\
+    grouped_expenses = (
+        cycle_expenses.values("category").annotate(total=Sum("amount")).order_by("-total")
+    )
+
+    category_data = []
+    if total_spent > 0:
+        for row in grouped_expenses:
+            percentage = (row["total"] / total_spent) * Decimal("100")
+            category_data.append(
+                {
+                    "category": row["category"],
+                    "total": float(row["total"]),
+                    "percentage": float(round(percentage, 2)),
+                }
+            )
+
+    context.update(
         {
-            'todaysBudget' : round(todaysLimit,2),
-            'cycle' : cycle,
-            'message' : message,
+            "remaining_budget": round(remaining_budget, 2),
+            "remaining_days": remaining_days,
+            "safe_daily_limit": round(safe_daily_limit, 2),
+            "category_data": category_data,
+            "total_spent": round(total_spent, 2),
         }
-    template =  loader.get_template('todaysBudget.html')
-    return HttpResponse(template.render(context, request))
+    )
+    return render(request, "dashboard.html", context)
 
 def transactionsHistory(request):
     transactions = []
     message = ''
-    if Transaction.objects.count() != 0:
-        transactions = Transaction.objects.all()
+    if Expense.objects.count() != 0:
+        transactions = Expense.objects.all()
     else:
         message = 'No transactions found!'
 
@@ -67,8 +86,7 @@ def transactionsHistory(request):
         'message' : message,
     }
 
-    template = loader.get_template('transactions.html')
-    return HttpResponse(template.render(context, request))
+    return render(request, 'transactions.html', context)
 
 def create_cycle(request):
     """
@@ -76,18 +94,19 @@ def create_cycle(request):
     Takes user input and creates a new Budget Cycle in the database.
     """
     if request.method == 'POST':
-        total_amount = Decimal(request.POST.get('total_amount'))
+        total_allowance = Decimal(request.POST.get('total_allowance'))
         start_date = request.POST.get('start_date')
         end_date = request.POST.get('end_date')
-        
-        Cycle.objects.create(
-            total_amount=total_amount,
+
+        BudgetCycle.objects.update(is_active=False)
+        BudgetCycle.objects.create(
+            total_allowance=total_allowance,
             start_date=start_date,
             end_date=end_date,
-            current_balance=total_amount
+            is_active=True,
         )
         return redirect('dashboard')
-        
+
     return render(request, 'budget/create_cycle.html')
 
 def log_expense(request):
@@ -98,19 +117,19 @@ def log_expense(request):
     if request.method == 'POST':
         amount = Decimal(request.POST.get('amount'))
         category = request.POST.get('category')
-        
-        active_cycle = Cycle.objects.last()
-        
+
+        active_cycle = (
+            BudgetCycle.objects.filter(is_active=True).order_by("-start_date", "-id").first()
+        )
+
         if active_cycle:
-            Transaction.objects.create(
-                cycle=active_cycle,
+            Expense.objects.create(
+                budget_cycle=active_cycle,
                 amount=amount,
                 category=category,
-                date=timezone.now().date()
+                timestamp=timezone.now(),
             )
-            active_cycle.current_balance -= amount
-            active_cycle.save()
-            
+
         return redirect('dashboard')
-        
+
     return render(request, 'budget/log_expense.html')
