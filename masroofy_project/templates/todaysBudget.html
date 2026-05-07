@@ -2,11 +2,239 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Today's Budget</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Today's Budget – Masroofy</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; background: #f3f4f6; color: #1f2937; }
+        nav {
+            background: #fff;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 0.85rem 2rem;
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+        nav .brand { font-size: 1.2rem; font-weight: bold; color: #3b82f6; text-decoration: none; }
+        nav a { text-decoration: none; color: #6b7280; font-size: 0.95rem; }
+        nav a:hover { color: #1f2937; }
+        nav a.active { color: #3b82f6; font-weight: bold; }
+        main { max-width: 680px; margin: 2.5rem auto; padding: 0 1rem; }
+        h1 { font-size: 1.6rem; font-weight: bold; margin-bottom: 0.25rem; }
+        .subtitle { color: #6b7280; margin-bottom: 1.75rem; font-size: 0.95rem; }
+
+        /* Alert */
+        .alert-danger {
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            color: #991b1b;
+            margin-bottom: 1.5rem;
+        }
+        .alert-danger a { color: #3b82f6; font-weight: 600; text-decoration: none; }
+
+        /* Threshold warning */
+        .threshold-warning {
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+            color: #9a3412;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-weight: 600;
+        }
+        .threshold-critical {
+            background: #fef2f2;
+            border-color: #fca5a5;
+            color: #991b1b;
+        }
+
+        /* Stats grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 1.25rem;
+        }
+        .stat-card .label { font-size: 0.82rem; color: #6b7280; margin-bottom: 0.3rem; }
+        .stat-card .value { font-size: 1.6rem; font-weight: bold; }
+        .stat-card .value.green { color: #10b981; }
+        .stat-card .value.red { color: #ef4444; }
+        .stat-card .value.orange { color: #f97316; }
+        .stat-card .value.blue { color: #3b82f6; }
+
+        /* Progress bar */
+        .progress-card {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.88rem;
+            margin-bottom: 0.5rem;
+            color: #374151;
+        }
+        .progress-bar-bg {
+            background: #e5e7eb;
+            border-radius: 999px;
+            height: 12px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            border-radius: 999px;
+            transition: width 0.3s;
+        }
+        .fill-green { background: #10b981; }
+        .fill-orange { background: #f97316; }
+        .fill-red { background: #ef4444; }
+
+        /* Rollover notice */
+        .rollover-card {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.92rem;
+            color: #1e40af;
+        }
+        .rollover-card strong { display: block; margin-bottom: 0.3rem; font-size: 1rem; }
+
+        /* Today's expenses */
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 0.75rem;
+            color: #1f2937;
+        }
+        table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; }
+        thead { background: #f9fafb; }
+        th { text-align: left; padding: 0.7rem 1rem; font-size: 0.82rem; color: #6b7280; font-weight: 600; border-bottom: 1px solid #e5e7eb; }
+        td { padding: 0.8rem 1rem; font-size: 0.92rem; border-bottom: 1px solid #f3f4f6; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #f9fafb; }
+        .badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.78rem; font-weight: 600; }
+        .badge-Food { background: #dcfce7; color: #166534; }
+        .badge-Transport { background: #dbeafe; color: #1e40af; }
+        .badge-Utilities { background: #fef9c3; color: #854d0e; }
+        .badge-Entertainment { background: #f3e8ff; color: #6b21a8; }
+        .badge-Other { background: #f3f4f6; color: #374151; }
+        .empty-today { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; text-align: center; color: #6b7280; }
+        .empty-today a { color: #3b82f6; font-weight: 600; text-decoration: none; }
+    </style>
 </head>
 <body>
-    <p>{{ message }}</p>
-    <p> Current Balance : {{ cycle.current_balance }}</p>
-    <p> Today's Budget is : {{ todaysBudget }}</p>
+    <nav>
+        <a href="{% url 'dashboard' %}" class="brand">💰 Masroofy</a>
+        <a href="{% url 'dashboard' %}">Dashboard</a>
+        <a href="{% url 'create_cycle' %}">New Cycle</a>
+        <a href="{% url 'log_expense' %}">Log Expense</a>
+        <a href="{% url 'transactions' %}">Transactions</a>
+        <a href="{% url 'todays_budget' %}" class="active">Today's Budget</a>
+    </nav>
+
+    <main>
+        <h1>Today's Budget</h1>
+        <p class="subtitle">{{ today|date:"l, F j, Y" }}</p>
+
+        {% if no_active_cycle %}
+            <div class="alert-danger">
+                ⚠️ No active budget cycle.
+                <a href="{% url 'create_cycle' %}">Create one first →</a>
+            </div>
+        {% else %}
+
+            {% if threshold_level == 'critical' %}
+                <div class="threshold-warning threshold-critical">
+                    🚨 Critical! You've used {{ expenditure_percentage }}% of your total budget. Spend carefully!
+                </div>
+            {% elif threshold_level == 'warning' %}
+                <div class="threshold-warning">
+                    ⚠️ Warning! You've used {{ expenditure_percentage }}% of your total budget.
+                </div>
+            {% endif %}
+
+            {% if rollover_amount and rollover_amount > 0 %}
+                <div class="rollover-card">
+                    <strong>🔄 Daily Rollover Applied</strong>
+                    Yesterday's unspent balance of <strong>{{ rollover_amount }}</strong> has been added to today's limit.
+                    Your adjusted daily limit is <strong>{{ safe_daily_limit }}</strong>.
+                </div>
+            {% endif %}
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="label">Daily Limit</div>
+                    <div class="value blue">{{ safe_daily_limit }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Spent Today</div>
+                    <div class="value {% if over_limit %}red{% else %}orange{% endif %}">{{ spent_today }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Remaining Today</div>
+                    <div class="value {% if remaining_today < 0 %}red{% else %}green{% endif %}">{{ remaining_today }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="label">Total Remaining</div>
+                    <div class="value {% if remaining_budget < 0 %}red{% else %}green{% endif %}">{{ remaining_budget }}</div>
+                </div>
+            </div>
+
+            <div class="progress-card">
+                <div class="progress-label">
+                    <span>Today's spending</span>
+                    <span>{{ spent_today }} / {{ safe_daily_limit }}</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill {% if progress_pct >= 100 %}fill-red{% elif progress_pct >= 75 %}fill-orange{% else %}fill-green{% endif %}"
+                         style="width: {% if progress_pct > 100 %}100{% else %}{{ progress_pct }}{% endif %}%">
+                    </div>
+                </div>
+            </div>
+
+            <p class="section-title">Today's Expenses</p>
+            {% if todays_expenses %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Category</th>
+                            <th>Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for expense in todays_expenses %}
+                        <tr>
+                            <td style="color:#9ca3af;">{{ expense.timestamp|time:"H:i" }}</td>
+                            <td><span class="badge badge-{{ expense.category }}">{{ expense.category }}</span></td>
+                            <td><strong>{{ expense.amount }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <div class="empty-today">
+                    No expenses logged today. <a href="{% url 'log_expense' %}">Log one now →</a>
+                </div>
+            {% endif %}
+
+        {% endif %}
+    </main>
 </body>
 </html>
