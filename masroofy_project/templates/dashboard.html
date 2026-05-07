@@ -6,11 +6,25 @@
     <title>Masroofy Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        nav {
+            background: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 0.85rem 2rem;
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+        nav .brand { font-size: 1.2rem; font-weight: bold; color: #3b82f6; text-decoration: none; }
+        nav a { text-decoration: none; color: #6b7280; font-size: 0.95rem; }
+        nav a:hover { color: #1f2937; }
+        nav a.active { color: #3b82f6; font-weight: bold; }
         body {
             font-family: Arial, sans-serif;
-            margin: 2rem;
+            background: #f3f4f6;
             color: #1f2937;
         }
+        main { margin: 2rem; }
         .card {
             border: 1px solid #e5e7eb;
             border-radius: 10px;
@@ -35,7 +49,15 @@
     </style>
 </head>
 <body>
-    <h1>Masroofy Dashboard</h1>
+    <nav>
+        <a href="{% url 'dashboard' %}" class="brand">💰 Masroofy</a>
+        <a href="{% url 'dashboard' %}" class="active">Dashboard</a>
+        <a href="{% url 'create_cycle' %}">New Cycle</a>
+        <a href="{% url 'log_expense' %}">Log Expense</a>
+        <a href="{% url 'transactions' %}">Transactions</a>
+    </nav>
+    <main>
+    <h1 style="font-size:1.6rem; font-weight:bold; margin-bottom:1.25rem;">Masroofy Dashboard</h1>
 
     {% if active_cycle %}
         <div class="layout">
@@ -89,5 +111,6 @@
             <p>Create a cycle first to see your safe daily limit and spending insights.</p>
         </section>
     {% endif %}
+    </main>
 </body>
 </html>

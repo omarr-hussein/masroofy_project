@@ -29,7 +29,6 @@ def dashboard_view(request):
 
     today = timezone.localdate()
 
-    # Remaining days are inclusive; when today is end date, it must be 1.
     if today > active_cycle.end_date:
         remaining_days = 0
     elif today < active_cycle.start_date:
@@ -73,20 +72,22 @@ def dashboard_view(request):
     )
     return render(request, "dashboard.html", context)
 
+
 def transactionsHistory(request):
     transactions = []
     message = ''
     if Expense.objects.count() != 0:
-        transactions = Expense.objects.all()
+        transactions = Expense.objects.all().order_by('-timestamp')
     else:
         message = 'No transactions found!'
 
     context = {
-        'transactions' : transactions,
-        'message' : message,
+        'transactions': transactions,
+        'message': message,
     }
 
     return render(request, 'transactions.html', context)
+
 
 def create_cycle(request):
     """
@@ -108,6 +109,7 @@ def create_cycle(request):
         return redirect('dashboard')
 
     return render(request, 'budget/create_cycle.html')
+
 
 def log_expense(request):
     """
@@ -132,4 +134,7 @@ def log_expense(request):
 
         return redirect('dashboard')
 
-    return render(request, 'budget/log_expense.html')
+    active_cycle = (
+        BudgetCycle.objects.filter(is_active=True).order_by("-start_date", "-id").first()
+    )
+    return render(request, 'budget/log_expense.html', {'no_active_cycle': not active_cycle})

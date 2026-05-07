@@ -2,25 +2,262 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Log Expense</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log Expense – Masroofy</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f3f4f6;
+            color: #1f2937;
+            min-height: 100vh;
+        }
+
+        /* ── Nav ── */
+        nav {
+            background: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 0.85rem 2rem;
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+        nav .brand {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #3b82f6;
+            text-decoration: none;
+        }
+        nav a {
+            text-decoration: none;
+            color: #6b7280;
+            font-size: 0.95rem;
+        }
+        nav a:hover { color: #1f2937; }
+        nav a.active { color: #3b82f6; font-weight: bold; }
+
+        /* ── Page layout ── */
+        main {
+            max-width: 520px;
+            margin: 2.5rem auto;
+            padding: 0 1rem;
+        }
+
+        .page-title {
+            font-size: 1.6rem;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+        .page-subtitle {
+            color: #6b7280;
+            margin-bottom: 1.75rem;
+            font-size: 0.95rem;
+        }
+
+        /* ── Card ── */
+        .card {
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 2rem;
+        }
+
+        /* ── No-cycle alert ── */
+        .alert {
+            background: #fef2f2;
+            border: 1px solid #fca5a5;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            color: #991b1b;
+            font-size: 0.92rem;
+            margin-bottom: 1rem;
+        }
+        .alert a {
+            color: #3b82f6;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .alert a:hover { text-decoration: underline; }
+
+        /* ── Form ── */
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+            color: #374151;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.6rem 0.85rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 1rem;
+            color: #1f2937;
+            background: #f9fafb;
+            transition: border-color 0.15s;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: #ffffff;
+        }
+
+        /* ── Category pills ── */
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.6rem;
+            margin-top: 0.4rem;
+        }
+        .category-pill input[type="radio"] { display: none; }
+        .category-pill label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.65rem 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #6b7280;
+            background: #f9fafb;
+            transition: all 0.15s;
+            user-select: none;
+        }
+        .category-pill label .icon { font-size: 1.3rem; }
+        .category-pill input[type="radio"]:checked + label {
+            border-color: #3b82f6;
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+        .category-pill label:hover {
+            border-color: #93c5fd;
+            background: #f0f9ff;
+        }
+
+        .hint {
+            font-size: 0.8rem;
+            color: #9ca3af;
+            margin-top: 0.3rem;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 0.75rem;
+            background: #10b981;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            transition: background 0.15s;
+        }
+        .btn-primary:hover { background: #059669; }
+        .btn-primary:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            display: block;
+            text-align: center;
+            margin-top: 0.85rem;
+            color: #6b7280;
+            font-size: 0.9rem;
+            text-decoration: none;
+        }
+        .btn-secondary:hover { color: #1f2937; }
+    </style>
 </head>
 <body>
-    <h1>Log Expense</h1>
-    <form method="post">
-        {% csrf_token %}
-        <label>Amount</label>
-        <input type="number" name="amount" step="0.01" required>
-        <br><br>
-        <label>Category</label>
-        <select name="category" required>
-            <option value="Food">Food</option>
-            <option value="Transport">Transport</option>
-            <option value="Utilities">Utilities</option>
-            <option value="Entertainment">Entertainment</option>
-            <option value="Other">Other</option>
-        </select>
-        <br><br>
-        <button type="submit">Save Expense</button>
-    </form>
+
+    <nav>
+        <a href="{% url 'dashboard' %}" class="brand">💰 Masroofy</a>
+        <a href="{% url 'dashboard' %}">Dashboard</a>
+        <a href="{% url 'create_cycle' %}">New Cycle</a>
+        <a href="{% url 'log_expense' %}" class="active">Log Expense</a>
+        <a href="{% url 'transactions' %}">Transactions</a>
+    </nav>
+
+    <main>
+        <h1 class="page-title">Log Expense</h1>
+        <p class="page-subtitle">Quickly record a new expense against your active budget cycle.</p>
+
+        {% if no_active_cycle %}
+            <div class="alert">
+                ⚠️ No active budget cycle found.
+                <a href="{% url 'create_cycle' %}">Create one first →</a>
+            </div>
+        {% endif %}
+
+        <div class="card">
+            <form method="post" id="expenseForm">
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label for="amount">Amount</label>
+                    <input
+                        type="number"
+                        id="amount"
+                        name="amount"
+                        step="0.01"
+                        min="0.01"
+                        placeholder="e.g. 45.00"
+                        required
+                        {% if no_active_cycle %}disabled{% endif %}
+                    >
+                    <p class="hint">Enter the amount spent.</p>
+                </div>
+
+                <div class="form-group">
+                    <label>Category</label>
+                    <div class="category-grid">
+                        <div class="category-pill">
+                            <input type="radio" name="category" id="cat-food" value="Food" checked>
+                            <label for="cat-food"><span class="icon">🍔</span> Food</label>
+                        </div>
+                        <div class="category-pill">
+                            <input type="radio" name="category" id="cat-transport" value="Transport">
+                            <label for="cat-transport"><span class="icon">🚌</span> Transport</label>
+                        </div>
+                        <div class="category-pill">
+                            <input type="radio" name="category" id="cat-utilities" value="Utilities">
+                            <label for="cat-utilities"><span class="icon">💡</span> Utilities</label>
+                        </div>
+                        <div class="category-pill">
+                            <input type="radio" name="category" id="cat-entertainment" value="Entertainment">
+                            <label for="cat-entertainment"><span class="icon">🎬</span> Entertainment</label>
+                        </div>
+                        <div class="category-pill">
+                            <input type="radio" name="category" id="cat-other" value="Other">
+                            <label for="cat-other"><span class="icon">📦</span> Other</label>
+                        </div>
+                    </div>
+                </div>
+
+                <button
+                    type="submit"
+                    class="btn-primary"
+                    {% if no_active_cycle %}disabled{% endif %}
+                >
+                    Save Expense
+                </button>
+            </form>
+
+            <a href="{% url 'dashboard' %}" class="btn-secondary">← Back to Dashboard</a>
+        </div>
+    </main>
+
 </body>
 </html>
