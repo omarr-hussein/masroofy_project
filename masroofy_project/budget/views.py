@@ -136,7 +136,7 @@ def log_expense(request):
     return render(request, 'budget/log_expense.html', {'no_active_cycle': not active_cycle})
 
 
-def todays_budget(request):
+def todaysBudget(request):
     today = timezone.localdate()
     active_cycle = (
         BudgetCycle.objects.filter(is_active=True).order_by("-start_date", "-id").first()
@@ -145,56 +145,49 @@ def todays_budget(request):
     if not active_cycle:
         return render(request, 'todaysBudget.html', {'no_active_cycle': True, 'today': today})
 
-    # All cycle expenses
-    cycle_expenses = Expense.objects.filter(budget_cycle=active_cycle)
-    total_spent = cycle_expenses.aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
-    remaining_budget = active_cycle.total_allowance - total_spent
+    cycleExpenses = Expense.objects.filter(budget_cycle=active_cycle)
+    totalSpent = cycleExpenses.aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+    remainingBudget = active_cycle.total_allowance - totalSpent
 
     # Remaining days
     if today > active_cycle.end_date:
-        remaining_days = 0
+        remainingDays = 0
     elif today < active_cycle.start_date:
-        remaining_days = (active_cycle.end_date - active_cycle.start_date).days + 1
+        remainingDays = (active_cycle.end_date - active_cycle.start_date).days + 1
     else:
-        remaining_days = (active_cycle.end_date - today).days + 1
+        remainingDays = (active_cycle.end_date - today).days + 1
 
-    # Base daily limit
-    if remaining_days > 0:
-        safe_daily_limit = remaining_budget / Decimal(remaining_days)
+    if remainingDays > 0:
+        safeDailyLimit = remainingBudget / Decimal(remainingDays)
     else:
-        safe_daily_limit = Decimal("0.00")
+        safeDailyLimit = Decimal("0.00")
 
-    # Daily rollover: check yesterday's spending vs yesterday's limit
     yesterday = today - timezone.timedelta(days=1)
-    total_cycle_days = (active_cycle.end_date - active_cycle.start_date).days + 1
-    base_daily = active_cycle.total_allowance / Decimal(total_cycle_days) if total_cycle_days > 0 else Decimal("0.00")
+    totalCycleDays = (active_cycle.end_date - active_cycle.start_date).days + 1
+    base_daily = active_cycle.total_allowance / Decimal(totalCycleDays) if totalCycleDays > 0 else Decimal("0.00")
 
-    yesterday_spent = cycle_expenses.filter(
+    yesterdaySpent = cycleExpenses.filter(
         timestamp__date=yesterday
     ).aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
 
-    rollover_amount = max(base_daily - yesterday_spent, Decimal("0.00"))
+    rolloverAmount = max(base_daily - yesterdaySpent, Decimal("0.00"))
 
-    # Today's expenses
-    todays_expenses = cycle_expenses.filter(timestamp__date=today).order_by('-timestamp')
-    spent_today = todays_expenses.aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
+    todaysExpenses = cycleExpenses.filter(timestamp__date=today).order_by('-timestamp')
+    spent_today = todaysExpenses.aggregate(total=Sum("amount"))["total"] or Decimal("0.00")
 
-    # Adjusted daily limit with rollover
-    adjusted_daily_limit = safe_daily_limit + rollover_amount
+    adjusted_daily_limit = safeDailyLimit + rolloverAmount
     remaining_today = adjusted_daily_limit - spent_today
     over_limit = spent_today > adjusted_daily_limit
 
-    # Progress percentage
     if adjusted_daily_limit > 0:
         progress_pct = float((spent_today / adjusted_daily_limit) * 100)
     else:
         progress_pct = 0
 
-    # Budget threshold notification
     expenditure_percentage = 0
     threshold_level = None
     if active_cycle.total_allowance > 0:
-        expenditure_percentage = float((total_spent / active_cycle.total_allowance) * 100)
+        expenditure_percentage = float((totalSpent / active_cycle.total_allowance) * 100)
         if expenditure_percentage >= 90:
             threshold_level = "critical"
         elif expenditure_percentage >= 75:
@@ -206,11 +199,11 @@ def todays_budget(request):
         'safe_daily_limit': round(adjusted_daily_limit, 2),
         'spent_today': round(spent_today, 2),
         'remaining_today': round(remaining_today, 2),
-        'remaining_budget': round(remaining_budget, 2),
-        'todays_expenses': todays_expenses,
+        'remaining_budget': round(remainingBudget, 2),
+        'todays_expenses': todaysExpenses,
         'over_limit': over_limit,
         'progress_pct': round(progress_pct, 1),
-        'rollover_amount': round(rollover_amount, 2) if rollover_amount > 0 else None,
+        'rollover_amount': round(rolloverAmount, 2) if rolloverAmount > 0 else None,
         'threshold_level': threshold_level,
         'expenditure_percentage': round(expenditure_percentage, 1),
         'no_active_cycle': False,

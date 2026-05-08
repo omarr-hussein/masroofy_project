@@ -7,5 +7,5 @@ urlpatterns = [
     path('log-expense/', views.log_expense, name='log_expense'),
     path('dashboard/', views.dashboard_view, name='dashboard_page'),
     path('transactions/', views.transactionsHistory, name='transactions'),
-    path('todays-budget/', views.todays_budget, name='todays_budget'),
+    path('todaysbudget/', views.todaysBudget, name='todays_budget'),
 ]
